@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Manager - Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional styles for dropdown */
+        .user-dropdown {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .loading-dropdown {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard-container">
@@ -50,9 +63,12 @@
                             <textarea id="task-description" name="description" rows="5"></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="assignee-email">Assign To (Email)</label>
-                            <input type="email" id="assignee-email" name="assignee_email" placeholder="Leave empty to assign to yourself">
-                            <p class="hint">Enter the email of the user you want to assign this task to (optional)</p>
+                            <label for="assignee-select">Assign To</label>
+                            <select id="assignee-select" name="assignee" class="user-dropdown">
+                                <option value="">Assign to</option>
+                                <option value="loading" disabled class="loading-dropdown">Loading users...</option>
+                            </select>
+                            <p class="hint">Select a user to assign this task to (optional)</p>
                         </div>
                         <button type="submit" class="btn primary-btn">Create Task</button>
                     </form>
@@ -69,9 +85,11 @@
                             <p class="hint">Enter the ID of the task you want to reassign</p>
                         </div>
                         <div class="form-group">
-                            <label for="assignee-email-existing">Assign To (Email)</label>
-                            <input type="email" id="assignee-email-existing" name="assignee_email" required>
-                            <p class="hint">Enter the email of the user you want to assign the task to</p>
+                            <label for="assignee-select-existing">Assign To</label>
+                            <select id="assignee-select-existing" name="assignee" class="user-dropdown" required>
+                                <option value="" disabled selected>Select a user</option>
+                                <option value="loading" disabled class="loading-dropdown">Loading users...</option>
+                            </select>
                         </div>
                         <button type="submit" class="btn primary-btn">Reassign Task</button>
                     </form>
@@ -88,6 +106,45 @@
                 window.location.href = 'login.html';
             }
             return token;
+        }
+
+        // Fetch all users for dropdowns
+        async function fetchUsers() {
+            const token = checkAuth();
+            try {
+                const response = await fetch('http://localhost:8000/users/', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch users');
+                }
+                
+                const users = await response.json();
+                
+                // Populate create task dropdown
+                const createTaskDropdown = document.getElementById('assignee-select');
+                createTaskDropdown.innerHTML = '<option value="">Assign </option>';
+                
+                // Populate manage tasks dropdown
+                const manageTasksDropdown = document.getElementById('assignee-select-existing');
+                manageTasksDropdown.innerHTML = '<option value="" disabled selected>Select a user</option>';
+                
+                // Add users to both dropdowns
+                users.forEach(user => {
+                    createTaskDropdown.innerHTML += `<option value="${user.id}">${user.username} (${user.email})</option>`;
+                    manageTasksDropdown.innerHTML += `<option value="${user.id}">${user.username} (${user.email})</option>`;
+                });
+                
+                return users;
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                const errorOption = '<option value="" disabled>Error loading users</option>';
+                document.getElementById('assignee-select').innerHTML = '<option value="">Assign to </option>' + errorOption;
+                document.getElementById('assignee-select-existing').innerHTML = errorOption;
+            }
         }
 
         // Fetch current user info
@@ -162,6 +219,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const token = checkAuth();
             fetchUserInfo();
+            fetchUsers();
             fetchTasks();
             
             // Navigation
@@ -190,12 +248,12 @@
                 window.location.href = 'login.html';
             });
             
-            // Create task form with optional assignment
+            // Create task form with user dropdown selection
             document.getElementById('create-task-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const taskTitle = document.getElementById('task-title').value;
                 const taskDescription = document.getElementById('task-description').value;
-                const assigneeEmail = document.getElementById('assignee-email').value;
+                const assigneeId = document.getElementById('assignee-select').value;
                 const messageElement = document.getElementById('create-task-message');
                 
                 try {
@@ -218,23 +276,9 @@
                         throw new Error(taskData.detail || 'Failed to create task');
                     }
                     
-                    // If assignee email is provided, assign the task
-                    if (assigneeEmail) {
-                        // First get user ID by email
-                        const userResponse = await fetch(`http://localhost:8000/users/by-email?email=${encodeURIComponent(assigneeEmail)}`, {
-                            method: 'GET',
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        });
-                        
-                        if (!userResponse.ok) {
-                            throw new Error('User with this email not found');
-                        }
-                        
-                        const userData = await userResponse.json();
-                        
-                        // Now assign the task
+                    // If assignee is selected, assign the task
+                    if (assigneeId) {
+                        // Now assign the task directly with user ID
                         const assignResponse = await fetch('http://localhost:8000/tasks/assign', {
                             method: 'POST',
                             headers: {
@@ -243,7 +287,7 @@
                             },
                             body: JSON.stringify({
                                 task_id: taskData.id,
-                                user_id: userData.id
+                                user_id: assigneeId
                             })
                         });
                         
@@ -270,29 +314,21 @@
                 }
             });
             
-            // Assign existing task form
+            // Assign existing task form with user dropdown
             document.getElementById('assign-task-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const taskId = document.getElementById('task-id').value;
-                const assigneeEmail = document.getElementById('assignee-email-existing').value;
+                const assigneeId = document.getElementById('assignee-select-existing').value;
                 const messageElement = document.getElementById('assign-task-message');
                 
+                if (!assigneeId) {
+                    messageElement.textContent = 'Please select a user to assign the task to';
+                    messageElement.className = 'message error';
+                    return;
+                }
+                
                 try {
-                    // First get user ID by email
-                    const userResponse = await fetch(`http://localhost:8000/users/by-email?email=${encodeURIComponent(assigneeEmail)}`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    
-                    if (!userResponse.ok) {
-                        throw new Error('User with this email not found');
-                    }
-                    
-                    const userData = await userResponse.json();
-                    
-                    // Now assign the task
+                    // Directly assign the task with user ID
                     const assignResponse = await fetch('http://localhost:8000/tasks/assign', {
                         method: 'POST',
                         headers: {
@@ -301,7 +337,7 @@
                         },
                         body: JSON.stringify({
                             task_id: taskId,
-                            user_id: userData.id
+                            user_id: assigneeId
                         })
                     });
                     
