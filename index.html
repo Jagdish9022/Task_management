@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .home-container {
+            background-color: #2c3e50;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+        
+        .home-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .home-title {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+        
+        .home-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 40px;
+            color: #ecf0f1;
+        }
+        
+        .home-features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .feature {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            width: 200px;
+            transition: transform 0.3s;
+        }
+        
+        .feature:hover {
+            transform: translateY(-10px);
+        }
+        
+        .feature h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .cta-btn {
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        
+        .primary-cta {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .primary-cta:hover {
+            background-color: #2980b9;
+        }
+        
+        .secondary-cta {
+            background-color: transparent;
+            border: 2px solid #3498db;
+            color: #3498db;
+        }
+        
+        .secondary-cta:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .home-features {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .feature {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="home-container">
+        <div class="home-content">
+            <h1 class="home-title">Task Manager</h1>
+            <p class="home-subtitle">A simple and efficient way to manage your tasks and team assignments</p>
+            
+            <div class="home-features">
+                <div class="feature">
+                    <h3>Create Tasks</h3>
+                    <p>Create detailed tasks with titles and descriptions</p>
+                </div>
+                <div class="feature">
+                    <h3>Assign Tasks</h3>
+                    <p>Assign tasks to team members easily</p>
+                </div>
+                <div class="feature">
+                    <h3>Track Progress</h3>
+                    <p>View all your assigned tasks in one dashboard</p>
+                </div>
+            </div>
+            
+            <div class="cta-buttons">
+                <a href="login.html" class="cta-btn primary-cta">Login</a>
+                <a href="signup.html" class="cta-btn secondary-cta">Sign Up</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Redirect to dashboard if already logged in
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
+</body>
+</html>
